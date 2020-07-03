@@ -26,6 +26,7 @@ def keyboard():
     return jsonify(res)
 
 # 발생현황
+# 2020.07.04 웹페이지 수정 때문에 데이터를 가져올 수 없어 코드를 수정함
 @application.route('/presentState', methods=["POST"])
 def presentState():
     html = urlopen("http://ncov.mohw.go.kr/")
@@ -37,37 +38,39 @@ def presentState():
     time = divLiveNumOuter.find("span", class_="livedate").get_text()
     time = time.split(", ")
     time = time[0] + ")"
-    # 일일 확진자
-    dConfirm = divLiveNumOuter.find("span", class_="data1").get_text()
-    # 일일 완치자
-    dCure = divLiveNumOuter.find("span", class_="data2").get_text()
-    spanNumClass = divLiveNumOuter.findAll("span", class_="num")
-    spanBeforeClass = divLiveNumOuter.findAll("span", class_="before")
 
-    # 확진환자, 완치, 치료 중, 사망 
-    res = []
-    for snc in spanNumClass:
-        res.append(snc.get_text())
-    res[0] = res[0].lstrip("'(누적)''")
-    # 전일대비 확진, 완치, 치료, 사망
-    beforRes = []
-    for sbc in spanBeforeClass:
-        beforRes.append(sbc.get_text())
-    beforRes[0] = beforRes[0].lstrip("전일대비 ")
+    # 일일 확진자 = 지역 발생 + 해외 유입
+    dConfirm = divLiveNumOuter.findAll("span", class_="data")
+    day = []
+    for dlc in dConfirm:
+	day.append(dlc.get_text())
     
+    # 누적 확진환자, 완치, 치료 중(격리), 사망
+    allRes = []
+    spanNumClass = divLiveNumOuter.findAll("span", class_="num")
+    for snc in spanNumClass:
+	allRes.append(snc.get_text())
+    allRes[0] = allRes[0].lstrip("'(누적)'")
+
+    # 전일 대비 확진, 완치, 치료 중, 사망
+    beforeRes = []
+    spanBeforeClass = divLiveNumOuter.findAll("span", class_="before")
+    for sbc in spanBeforeClass:
+	beforeRes.append(sbc.get_text())
+    beforeRes[0] = beforeRes[0].lstrip("전일대비 ")
+
     result=[]
     i = 0
-    while i < len(res):
-        result.append(res[i]+beforRes[i])
-        i = i + 1
-    print(result)
+    while i < len(allRes):
+	result.append(allRes[i]+beforeRes[i])
+	i = i + 1
         
     res = {
-        "version": "2.0",
+	"version": "2.0",
         "data": {
             "time" : time,
-            "dConfirm" : dConfirm,
-            "dCure" : dCure,
+            "dLocalCon" : day[0],
+            "dAboard" : day[1],
             "confirm" : result[0],
             "clear" : result[1],
             "isolation" : result[2],
